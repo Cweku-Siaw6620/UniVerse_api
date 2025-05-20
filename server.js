@@ -6,7 +6,7 @@ const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 
 const app = express();
-// const port = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
 //importing the models
 //const User = require('./models/userModel');
@@ -148,7 +148,7 @@ app.delete('/products/:id', async (req, res) => {
 mongoose.connect('mongodb+srv://kelvinashong02:qwerty111@universe.y8my3b4.mongodb.net/?retryWrites=true&w=majority&appName=UniVerse')
 .then(()=>{
     console.log("connected to mongodb");
-    app.listen(3000, ()=>{
+    app.listen(PORT, ()=>{
         console.log('Cictech APi is runing on port 3000');
     })
 }).catch((error) => {  // ✅ include (error)
