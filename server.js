@@ -1,54 +1,61 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+const { OAuth2Client } = require('google-auth-library');
+require('dotenv').config();
 
+const app = express();
 // const port = process.env.PORT || 4000;
 
 //importing the models
-const User = require('./models/userModel');
+//const User = require('./models/userModel');
 const Product = require('./models/productModel');
 
-const app = express();
+// Google OAuth2 Client
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 //middleware
 app.use(cors())
 app.use(express.json());
+app.use(bodyParser.json());
 
-//saving users accounts
-app.post("/users", async(req,res)=>{
-    let user = new User(req.body);
-    let result = await user.save();
-    res.send(result);
-})
-  
 
-//fetching user accounts
-app.get('/users' , async(req,res) =>{
-    try {
-         const users = await User.find({});
-         res.status(200).json(users);
-    } catch (error) {
-         console.log(error.message);
-         res.status(500).json({message: error.message});
-    }
- })
- 
-//deleting user account
-app.delete('/users/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const user = await User.findByIdAndDelete(id);  // Find the product by ID and delete it
+// Route to verify Google token
+app.post('/api/auth/google', async (req, res) => {
+  const { token } = req.body;
 
-        if (!user) {
-            return res.status(404).json({ message: `No user found with ID ${id}` });
-        }
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
 
-        res.status(200).json({ message: `User with ID ${id} has been deleted` });
-    } catch (error) {
-        console.log(error.message);
-        res.status(500).json({ message: error.message });
-    }
+    const payload = ticket.getPayload();
+    const { sub, email, name, picture } = payload;
+
+    // You could now check MongoDB here and create user if not exists
+
+    res.status(200).json({
+      googleId: sub,
+      email,
+      name,
+      picture
+    });
+
+  } catch (error) {
+    console.error("Token verification error:", error.message);
+    res.status(401).json({ message: "Invalid Google token" });
+  }
 });
+
+
+
+
+
+
+
+
 
 
 
@@ -144,8 +151,8 @@ mongoose.connect('mongodb+srv://kelvinashong02:qwerty111@universe.y8my3b4.mongod
     app.listen(3000, ()=>{
         console.log('Cictech APi is runing on port 3000');
     })
-}).catch(()=>{
-    console.log(error);
-})
+}).catch((error) => {  // ✅ include (error)
+  console.log("MongoDB connection error:", error.message);
+});
 
 
