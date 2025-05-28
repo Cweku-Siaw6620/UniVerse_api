@@ -9,8 +9,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 //importing the models
-//const User = require('./models/userModel');
+const User = require('./models/userModel');
 const Product = require('./models/productModel');
+const Store = require('./models/storeModel')
 
 // Google OAuth2 Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -34,13 +35,20 @@ app.post('/api/auth/google', async (req, res) => {
     const payload = ticket.getPayload();
     const { sub, email, name, picture } = payload;
 
+    // Save or find user
+    let user = await User.findOne({ googleId: sub });
+
+    if (!user) {
+      user = await User.create({ googleId: sub, email, name, picture });
+    }
+
     // You could now check MongoDB here and create user if not exists
 
     res.status(200).json({
-      googleId: sub,
-      email,
-      name,
-      picture
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      picture: user.picture
     });
 
   } catch (error) {
@@ -52,97 +60,88 @@ app.post('/api/auth/google', async (req, res) => {
 
 
 
+//saving Stores
+app.post('/stores', async (req, res) => {
+  const { userId,storeName,sellerName, storeDescription, sellerNumber } = req.body;
+  
+  const user = await User.findById(userId);
+if (!user) return res.status(404).json({ message: "User not found" });
 
+// Optionally: prevent multiple stores per user
+const existingStore = await Store.findOne({ owner: userId });
+if (existingStore) {
+  return res.status(409).json({ message: "Store already exists for this user." });
+}
 
+  try {
+    const store = await Store.create({
+      owner: userId,
+      storeName,
+      sellerName,
+      sellerNumber,
+      storeDescription,
+    });
 
-
-
-
-
-//fetching all data
-app.get('/products' , async(req,res) =>{
-   try {
-        const products = await Product.find({});
-        res.status(200).json(products);
-   } catch (error) {
-        console.log(error.message);
-        res.status(500).json({message: error.message});
-   }
-})
-
-//fetching by ID
-app.get('/products/:id' , async(req,res) =>{
-    try {
-        const {id} = req.params;
-         const product = await Product.findById(id);
-         res.status(200).json(product);
-    } catch (error) {
-         console.log(error.message);
-         res.status(500).json({message: error.message});
-    }
- })
-
- // Fetching products by brand
-app.get('/products/brand/:brand', async (req, res) => {
-    try {
-        const { brand } = req.params;
-        const products = await Product.find({ brand: brand });  // Fetch products by brand
-        if (!products.length) {
-            return res.status(404).json({ message: `No products found for brand ${brand}` });
-        }
-        res.status(200).json(products);
-    } catch (error) {
-        console.log(error.message);
-        res.status(500).json({ message: error.message });
-    }
+    res.status(201).json(store);
+  } catch (err) {
+    console.error("Error saving store:", err);
+    res.status(500).json({ message: "Failed to save store" });
+  }
 });
 
-//saving data
-app.post('/products' , async(req,res) =>{
-    try {
-        const products = await Product.create(req.body);
-        res.status(200).json(products);
-    } catch (error) {
-        console.log(error.message);
-        res.status(500).json({message: error.message});
+
+//saving products
+app.post('/api/products', async (req, res) => {
+  const { userId, storeId, productName, price, image } = req.body;
+
+  // Optional: verify store belongs to user
+    const store = await Store.findOne({ _id: storeId, userId });
+    if (!store) {
+      return res.status(403).json({ message: "Unauthorized or invalid store." });
     }
-})
 
+  try {
+    const product = await Product.create({
+      storeId,
+      owner: userId,
+      productName,
+      price,
+      image
+    });
 
-//updating a product
-app.put('/products/:id' , async(req,res) =>{
-    try {
-        const { id } = req.params;
-        const product = await Product.findByIdAndUpdate(id, req.body);
-
-        if (!product) {
-            return res.status(404).json({ message: `No product found with ID ${id}` });
-        }
-        res.status(200).json(product);
-
-    } catch (error) {
-        console.log(error.message);
-        res.status(500).json({message: error.message});
-    }
-})
-
-
-// Deleting a product by ID
-app.delete('/products/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const product = await Product.findByIdAndDelete(id);  // Find the product by ID and delete it
-
-        if (!product) {
-            return res.status(404).json({ message: `No product found with ID ${id}` });
-        }
-
-        res.status(200).json({ message: `Product with ID ${id} has been deleted` });
-    } catch (error) {
-        console.log(error.message);
-        res.status(500).json({ message: error.message });
-    }
+    res.status(201).json(product);
+  } catch (err) {
+    console.error("Error saving product:", err);
+    res.status(500).json({ message: "Failed to save product" });
+  }
 });
+
+//getting user's store data
+app.get('/api/stores/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const stores = await Store.find({ owner: userId });
+    res.status(200).json(stores);
+  } catch (err) {
+    console.error("Error fetching Store:", err);
+    res.status(500).json({ message: "Failed to fetch store" });
+  }
+});
+
+//getting user's product data
+app.get('/api/products/user/:userId', async (req, res) => {
+  try {
+    const stores = await Store.find({ owner: req.params.userId }).select('_id');
+    const storeIds = stores.map(s => s._id);
+    const products = await Product.find({ storeId: { $in: storeIds } });
+    res.status(200).json(products);
+  } catch (err) {
+    console.error("Error fetching user products:", err);
+    res.status(500).json({ message: "Failed to fetch user products" });
+  }
+});
+
 
 
 mongoose.connect('mongodb+srv://kelvinashong02:qwerty111@universe.y8my3b4.mongodb.net/?retryWrites=true&w=majority&appName=UniVerse')
