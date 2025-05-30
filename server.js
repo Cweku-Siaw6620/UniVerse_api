@@ -57,11 +57,37 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+//fetching user accounts
+app.get('/api/auth/google' , async(req,res) =>{
+    try {
+         const user = await User.find({});
+         res.status(200).json(user);
+    } catch (error) {
+         console.log(error.message);
+         res.status(500).json({message: error.message});
+    }
+ })
 
+  // Deleting a user by ID
+app.delete('/api/auth/google/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findByIdAndDelete(id);  // Find the user by ID and delete it
+
+        if (!user) {
+            return res.status(404).json({ message: `No user found with ID ${id}` });
+        }
+
+        res.status(200).json({ message: `User with ID ${id} has been deleted` });
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ message: error.message });
+    }
+});
 
 
 //saving Stores
-app.post('/stores', async (req, res) => {
+app.post('/api/stores', async (req, res) => {
   const { userId,storeName,sellerName, storeDescription, sellerNumber } = req.body;
   
   const user = await User.findById(userId);
@@ -89,6 +115,49 @@ if (existingStore) {
   }
 });
 
+//getting user's store data
+app.get('/api/stores/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const stores = await Store.find({ owner: userId });
+    res.status(200).json(stores);
+  } catch (err) {
+    console.error("Error fetching Store:", err);
+    res.status(500).json({ message: "Failed to fetch store" });
+  }
+});
+
+// try
+app.get('/api/stores/:id/exists', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const store = await Store.findOne({ owner: userId });
+    res.json({ hasStore: !!store });
+  } catch (err) {
+    console.error("Error fetching Store:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+ // Deleting a user's store by ID
+app.delete('/api/stores/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const store = await Store.findByIdAndDelete(id);  // Find the store by ID and delete it
+
+        if (!store) {
+            return res.status(404).json({ message: `No store found with ID ${id}` });
+        }
+
+        res.status(200).json({ message: `Store with ID ${id} has been deleted` });
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 
 //saving products
 app.post('/api/products', async (req, res) => {
@@ -113,19 +182,6 @@ app.post('/api/products', async (req, res) => {
   } catch (err) {
     console.error("Error saving product:", err);
     res.status(500).json({ message: "Failed to save product" });
-  }
-});
-
-//getting user's store data
-app.get('/api/stores/:userId', async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const stores = await Store.find({ owner: userId });
-    res.status(200).json(stores);
-  } catch (err) {
-    console.error("Error fetching Store:", err);
-    res.status(500).json({ message: "Failed to fetch store" });
   }
 });
 
