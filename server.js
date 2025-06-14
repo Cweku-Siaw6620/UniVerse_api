@@ -4,6 +4,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
+const upload = require('./middleware/cloudinaryUploader')
+const cloudinary = require('./utils/cloudinary')
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -87,9 +90,18 @@ app.delete('/api/auth/google/:id', async (req, res) => {
 
 
 //saving Stores
-app.post('/api/stores', async (req, res) => {
+app.post('/api/stores', upload.single('storeLogo'), async (req, res) => {
+   if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
   const { userId,storeName,sellerName, storeDescription, sellerNumber } = req.body;
-  
+   try {
+    // Upload the store logo to Cloudinary
+    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path);
+    const storeLogoUrl = cloudinaryResult.secure_url;
+
+
   const user = await User.findById(userId);
 if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -99,15 +111,14 @@ if (existingStore) {
   return res.status(409).json({ message: "Store already exists for this user." });
 }
 
-  try {
     const store = await Store.create({
       owner: userId,
       storeName,
       sellerName,
       sellerNumber,
       storeDescription,
+      storeLogo : storeLogoUrl,
     });
-
     res.status(201).json(store);
   } catch (err) {
     console.error("Error saving store:", err);

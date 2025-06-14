@@ -6,6 +6,7 @@ const storeSchema = new mongoose.Schema({
   sellerName : String,
   sellerNumber : String,
   storeDescription : String,
+  storeLogo : {type: String, required: true},
 }, { timestamps: true });
 
 module.exports = mongoose.model('Store', storeSchema);
