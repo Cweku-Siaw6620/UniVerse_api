@@ -131,8 +131,8 @@ app.get('/api/stores/:userId', async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const stores = await Store.find({ owner: userId });
-    res.status(200).json(stores);
+    const store = await Store.findOne({ owner: userId });
+    res.status(200).json(store);
   } catch (err) {
     console.error("Error fetching Store:", err);
     res.status(500).json({ message: "Failed to fetch store" });
