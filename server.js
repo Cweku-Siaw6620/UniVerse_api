@@ -4,7 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
-const upload = require('./middleware/cloudinaryUploader')
+const {storeUpload, productUpload} = require('./middleware/cloudinaryUploader');
 const cloudinary = require('./utils/cloudinary')
 
 
@@ -90,7 +90,7 @@ app.delete('/api/auth/google/:id', async (req, res) => {
 
 
 //saving Stores
-app.post('/api/stores', upload.single('storeLogo'), async (req, res) => {
+app.post('/api/stores', storeUpload.single('storeLogo'), async (req, res) => {
    if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
@@ -98,8 +98,14 @@ app.post('/api/stores', upload.single('storeLogo'), async (req, res) => {
   const { userId,storeName,sellerName, storeDescription, sellerNumber } = req.body;
    try {
     // Upload the store logo to Cloudinary
-    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path);
+    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+    folder: 'store_logos',
+    use_filename: true,
+    unique_filename: false,
+    overwrite: false
+    });
     const storeLogoUrl = cloudinaryResult.secure_url;
+    const storePublicId = cloudinaryResult.public_id;
 
 
   const user = await User.findById(userId);
@@ -118,6 +124,7 @@ if (existingStore) {
       sellerNumber,
       storeDescription,
       storeLogo : storeLogoUrl,
+      publicId: storePublicId
     });
     res.status(201).json(store);
   } catch (err) {
@@ -139,7 +146,7 @@ app.get('/api/stores/:userId', async (req, res) => {
   }
 });
 
-// try
+// checking for store existence.
 app.get('/api/stores/:id/exists', async (req, res) => {
   try {
     const userId = req.params.id;
@@ -156,11 +163,15 @@ app.get('/api/stores/:id/exists', async (req, res) => {
 app.delete('/api/stores/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const store = await Store.findByIdAndDelete(id);  // Find the store by ID and delete it
+        const store = await Store.findById(id);  // Find the store by ID and delete it
 
         if (!store) {
             return res.status(404).json({ message: `No store found with ID ${id}` });
         }
+        if (store.publicId) {
+        await cloudinary.uploader.destroy(store.publicId);
+        }
+        await Store.findByIdAndDelete(id);
 
         res.status(200).json({ message: `Store with ID ${id} has been deleted` });
     } catch (error) {
@@ -171,22 +182,39 @@ app.delete('/api/stores/:id', async (req, res) => {
 
 
 //saving products
-app.post('/api/products', async (req, res) => {
-  const { userId, storeId, productName, price, image } = req.body;
+app.post('/api/products', productUpload.single('productImage'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  };
+
+  const { userId, storeId, productName, productPrice, productStock,productCategory } = req.body;
 
   // Optional: verify store belongs to user
-    const store = await Store.findOne({ _id: storeId, userId });
-    if (!store) {
+    const store = await Store.findOne({ _id: storeId });
+    if (!store || store.owner.toString() !== userId) {
       return res.status(403).json({ message: "Unauthorized or invalid store." });
     }
 
   try {
+    // Upload the product image to Cloudinary
+    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'product_images',
+      use_filename: true,
+      unique_filename: false,
+      overwrite: false
+    });
+    const productImageUrl = cloudinaryResult.secure_url;
+    const productPublicId = cloudinaryResult.public_id;
+
     const product = await Product.create({
       storeId,
       owner: userId,
       productName,
-      price,
-      image
+      productPrice,
+      productStock,
+      productCategory,
+      productImage : productImageUrl,
+      publicId: productPublicId
     });
 
     res.status(201).json(product);
@@ -197,16 +225,40 @@ app.post('/api/products', async (req, res) => {
 });
 
 //getting user's product data
-app.get('/api/products/user/:userId', async (req, res) => {
+app.get('/api/products/:storeId', async (req, res) => {
+  const { storeId } = req.params;
+
   try {
-    const stores = await Store.find({ owner: req.params.userId }).select('_id');
-    const storeIds = stores.map(s => s._id);
-    const products = await Product.find({ storeId: { $in: storeIds } });
+    const products = await Product.find({ storeId });
     res.status(200).json(products);
   } catch (err) {
-    console.error("Error fetching user products:", err);
-    res.status(500).json({ message: "Failed to fetch user products" });
+    console.error("Error fetching store products:", err);
+    res.status(500).json({ message: "Failed to fetch store products" });
   }
+});
+
+//Deleting products
+app.delete('/api/products/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const product = await Product.findById(id);  // Find the store by ID and delete it
+
+        if (!product) {
+            return res.status(404).json({ message: `No product found with ID ${id}` });
+        }
+
+        // ✅ Delete image from Cloudinary using publicId
+        if (product.publicId) {
+        await cloudinary.uploader.destroy(product.publicId);
+        }
+        // ✅ Then delete the product from DB
+        await Product.findByIdAndDelete(id);
+
+        res.status(200).json({ message: `Product with ID ${id} has been deleted` });
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ message: error.message });
+    }
 });
 
 
