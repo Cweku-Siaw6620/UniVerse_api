@@ -146,6 +146,24 @@ app.get('/api/stores/:userId', async (req, res) => {
   }
 });
 
+//getting a single store by ID
+app.get('/api/stores/storeID/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const store = await Store.findById(id);
+
+    if (!store) return res.status(404).json({ message: "Store not found" });
+
+    res.status(200).json(store);
+  } catch (error) {
+    console.error("Error fetching store:", error);
+    res.status(500).json({ message: "Failed to fetch store details" });
+  }
+});
+
+
+
 // checking for store existence.
 app.get('/api/stores/:id/exists', async (req, res) => {
   try {
@@ -158,8 +176,18 @@ app.get('/api/stores/:id/exists', async (req, res) => {
   }
 });
 
+//fetch all stores
+app.get('/api/stores', async (req, res) => {
+    try {
+         const stores = await Store.find({});
+          res.status(200).json(stores);
+    } catch (error) {
+         console.log(error.message);
+         res.status(500).json({message: error.message});
+    }
+  })
 
- // Deleting a user's store by ID
+// Deleting a user's store by ID
 app.delete('/api/stores/:id', async (req, res) => {
     try {
         const { id } = req.params;
@@ -187,7 +215,7 @@ app.post('/api/products', productUpload.single('productImage'), async (req, res)
     return res.status(400).json({ message: "No file uploaded" });
   };
 
-  const { userId, storeId, productName, productPrice, productStock,productCategory } = req.body;
+  const { userId, storeId, productName, productPrice, productStock, productCategory, productDescription } = req.body;
 
   // Optional: verify store belongs to user
     const store = await Store.findOne({ _id: storeId });
@@ -213,7 +241,8 @@ app.post('/api/products', productUpload.single('productImage'), async (req, res)
       productPrice,
       productStock,
       productCategory,
-      productImage : productImageUrl,
+      productDescription,
+      productImage: productImageUrl,
       publicId: productPublicId
     });
 
@@ -223,6 +252,37 @@ app.post('/api/products', productUpload.single('productImage'), async (req, res)
     res.status(500).json({ message: "Failed to save product" });
   }
 });
+
+//fetch all products
+app.get('/api/products/all', async (req, res) => {
+  try {
+         const products = await Product.find({});
+          res.status(200).json(products);
+    } catch (error) {
+         console.log(error.message);
+         res.status(500).json({message: error.message});
+    }
+})
+
+//getting product by id
+app.get('/api/products/id/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    res.status(200).json(product);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch product" });
+  }
+});
+
+// Get products by category
+app.get('/api/products/category/:category', async (req, res) => {
+  try {
+    const products = await Product.find({ productCategory: req.params.category });
+    res.status(200).json(products);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch category products" });
+  }
+})
 
 //getting user's product data
 app.get('/api/products/:storeId', async (req, res) => {
