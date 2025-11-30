@@ -20,7 +20,10 @@ const Store = require('./models/storeModel')
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 //middleware
-app.use(cors())
+app.use(cors({
+  origin: 'https://universeweb.netlify.app', // Your Netlify URL
+  credentials: true // Required if you are sending cookies or auth headers
+}));
 app.use(express.json());
 app.use(bodyParser.json());
 
