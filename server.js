@@ -19,10 +19,20 @@ const Store = require('./models/storeModel')
 // Google OAuth2 Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-//middleware
+// REPLACE 'https://your-site-name.netlify.app' with your ACTUAL Netlify URL
+const allowedOrigins = ['https://universeweb.netlify.app/'];
+
 app.use(cors({
-  origin: 'https://universeweb.netlify.app', // Your Netlify URL
-  credentials: true // Required if you are sending cookies or auth headers
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true // Important for sessions/cookies
 }));
 app.use(express.json());
 app.use(bodyParser.json());
