@@ -20,7 +20,7 @@ const Store = require('./models/storeModel')
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // REPLACE 'https://your-site-name.netlify.app' with your ACTUAL Netlify URL
-const allowedOrigins = ['https://universeweb.netlify.app/'];
+const allowedOrigins = ['https://universeweb.netlify.app'];
 
 app.use(cors({
   origin: function (origin, callback) {
