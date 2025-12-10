@@ -20,8 +20,13 @@ const Store = require('./models/storeModel')
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // REPLACE 'https://your-site-name.netlify.app' with your ACTUAL Netlify URL
-const allowedOrigins = ['https://universeweb.netlify.app',"http://localhost:3000", "https://uni-verse-ebon.vercel.app"];
-
+const allowedOrigins = [
+  'https://universeweb.netlify.app',
+  "http://localhost:3000",
+  "https://uni-verse-ebon.vercel.app",
+  "http://127.0.0.1:5500", // Add this (VS Code Live Server default)
+  "http://localhost:5500"  // Add this (Just to be safe)
+];
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests)
