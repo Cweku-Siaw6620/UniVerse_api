@@ -39,6 +39,11 @@ app.use(cors({
   },
   credentials: true // Important for sessions/cookies
 }));
+
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin-allow-popups');
+  next();
+});
 app.use(express.json());
 app.use(bodyParser.json());
 
