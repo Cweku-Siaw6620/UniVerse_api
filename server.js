@@ -61,20 +61,24 @@ app.post('/api/auth/google', async (req, res) => {
     const payload = ticket.getPayload();
     const { sub, email, name, picture } = payload;
 
-    // Save or find user
     let user = await User.findOne({ googleId: sub });
 
     if (!user) {
-      user = await User.create({ googleId: sub, email, name, picture });
+      user = await User.create({
+        googleId: sub,
+        email,
+        name,
+        picture
+      });
     }
-
-    // You could now check MongoDB here and create user if not exists
 
     res.status(200).json({
       id: user._id,
       name: user.name,
       email: user.email,
-      picture: user.picture
+      picture: user.picture,
+      affiliation: user.affiliation,
+      university: user.university
     });
 
   } catch (error) {
@@ -82,6 +86,50 @@ app.post('/api/auth/google', async (req, res) => {
     res.status(401).json({ message: "Invalid Google token" });
   }
 });
+
+app.put('/api/auth/google/user/completeProfile', async (req, res) => {
+  const { userId, affiliation, university } = req.body;
+
+  if (!userId || !affiliation) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.affiliation = affiliation;
+
+    if (affiliation === "student") {
+      user.university = university || null;
+    } else {
+      // outsider / non-student
+      user.university = null;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        picture: user.picture,
+        affiliation: user.affiliation,
+        university: user.university
+      }
+    });
+
+  } catch (error) {
+    console.error("Profile update error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 //fetching user accounts
 app.get('/api/auth/google' , async(req,res) =>{
