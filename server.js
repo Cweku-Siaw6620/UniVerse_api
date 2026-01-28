@@ -248,7 +248,7 @@ app.get('/api/stores/storeID/:id', async (req, res) => {
   }
 });
 
-app.get('/api/stores/slug/:slug', async (req, res) => {
+app.get('/api/stores/shareStore/slug/:slug', async (req, res) => {
   try {
     const store = await Store.findOne({ slug: req.params.slug });
 
