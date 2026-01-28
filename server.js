@@ -248,6 +248,20 @@ app.get('/api/stores/storeID/:id', async (req, res) => {
   }
 });
 
+app.get('/api/stores/slug/:slug', async (req, res) => {
+  try {
+    const store = await Store.findOne({ slug: req.params.slug });
+
+    if (!store) {
+      return res.status(404).json({ message: 'Store not found' });
+    }
+
+    res.json(store);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 
 // checking for store existence.
