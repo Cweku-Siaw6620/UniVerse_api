@@ -365,6 +365,12 @@ app.post('/api/products', productUpload.single('productImage'), async (req, res)
 app.get('/api/products/all', async (req, res) => {
   try {
          const products = await Product.find({});
+
+              // Fisher-Yates shuffle
+          for (let i = products.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [products[i], products[j]] = [products[j], products[i]];
+          }
           res.status(200).json(products);
     } catch (error) {
          console.log(error.message);
