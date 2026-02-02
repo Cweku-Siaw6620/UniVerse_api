@@ -276,16 +276,24 @@ app.get('/api/stores/:id/exists', async (req, res) => {
   }
 });
 
-//fetch all stores
+//fetching all stores with random order
 app.get('/api/stores', async (req, res) => {
-    try {
-         const stores = await Store.find({});
-          res.status(200).json(stores);
-    } catch (error) {
-         console.log(error.message);
-         res.status(500).json({message: error.message});
+  try {
+    const stores = await Store.find({});
+
+    // Fisher-Yates shuffle
+    for (let i = stores.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [stores[i], stores[j]] = [stores[j], stores[i]];
     }
-  })
+
+    res.status(200).json(stores);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 // Deleting a user's store by ID
 app.delete('/api/stores/:id', async (req, res) => {
