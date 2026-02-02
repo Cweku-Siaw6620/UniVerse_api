@@ -248,7 +248,7 @@ app.get('/api/stores/storeID/:id', async (req, res) => {
   }
 });
 
-app.get('/api/stores/slug/:slug', async (req, res) => {
+/*app.get('/api/stores/slug/:slug', async (req, res) => {
   try {
     const store = await Store.findOne({ slug: req.params.slug });
 
@@ -260,7 +260,51 @@ app.get('/api/stores/slug/:slug', async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
+}); */
+
+app.get('/api/stores/slug/:slug', async (req, res) => {
+  try {
+    const store = await Store.findOne({ slug: req.params.slug });
+
+    if (!store) {
+      return res.status(404).send("Store not found");
+    }
+
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <title>${store.storeName} | UniVerse</title>
+
+        <!-- OpenGraph -->
+        <meta property="og:title" content="${store.storeName}" />
+        <meta property="og:description" content="${store.storeDescription}" />
+        <meta property="og:image" content="${store.storeLogo}" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://universeweb.netlify.app/store/${store.slug}" />
+
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <!-- Redirect actual users to SPA page -->
+        <script>
+          window.location.href = "/components/displayStore.html?slug=${store.slug}";
+        </script>
+      </head>
+      <body>
+        Loading store...
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
+  }
 });
+
 
 
 
