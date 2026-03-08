@@ -87,6 +87,7 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+// Route to complete user profile after Google login
 app.put('/api/auth/google/user/completeProfile', async (req, res) => {
   const { userId, affiliation, university } = req.body;
 
@@ -181,7 +182,7 @@ app.post('/api/stores', storeUpload.single('storeLogo'), async (req, res) => {
     return res.status(400).json({ message: "No file uploaded" });
   }
 
-  const { userId,storeName,sellerName, storeDescription, sellerNumber } = req.body;
+  const { userId,storeName,sellerName, storeDescription, sellerNumber, personalWebsite } = req.body;
    try {
     // Upload the store logo to Cloudinary
     const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
@@ -210,7 +211,8 @@ if (existingStore) {
       sellerNumber,
       storeDescription,
       storeLogo : storeLogoUrl,
-      publicId: storePublicId
+      publicId: storePublicId,
+      personalWebsite
     });
     res.status(201).json(store);
   } catch (err) {
@@ -441,7 +443,7 @@ mongoose.connect('mongodb+srv://kelvinashong02:qwerty111@universe.y8my3b4.mongod
 .then(()=>{
     console.log("connected to mongodb");
     app.listen(PORT, ()=>{
-        console.log('Cictech APi is runing on port 3000');
+        console.log('UniVerse API is running on port 3000');
     })
 }).catch((error) => {  // ✅ include (error)
   console.log("MongoDB connection error:", error.message);

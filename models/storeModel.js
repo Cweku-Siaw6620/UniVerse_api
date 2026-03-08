@@ -29,6 +29,11 @@ const storeSchema = new mongoose.Schema({
 
   publicId: {
     type: String
+  },
+
+  personalWebsite: {
+    type: String,
+    required: false
   }
 
 }, { timestamps: true });
