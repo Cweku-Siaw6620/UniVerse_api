@@ -16,7 +16,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
-
+  studentEmail: {
+    type: String,
+    default: null
+  },
+  graduationDate: {
+    type: Date,
+    default: null
+  },
+  isVerified: { 
+    type: Boolean, 
+    default: false 
+  },
+  verificationToken: { type: String }
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

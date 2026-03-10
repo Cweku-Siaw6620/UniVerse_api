@@ -6,6 +6,9 @@ const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 const {storeUpload, productUpload} = require('./middleware/cloudinaryUploader');
 const cloudinary = require('./utils/cloudinary')
+//student email verification dependencies
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
 
 
 const app = express();
@@ -87,6 +90,7 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
+/*
 // Route to complete user profile after Google login
 app.put('/api/auth/google/user/completeProfile', async (req, res) => {
   const { userId, affiliation, university } = req.body;
@@ -129,8 +133,89 @@ app.put('/api/auth/google/user/completeProfile', async (req, res) => {
     console.error("Profile update error:", error);
     res.status(500).json({ message: "Server error" });
   }
+}); */
+
+app.put('/api/auth/google/user/completeProfile', async (req, res) => {
+  const { userId, affiliation, university, graduationDate, studentEmail } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.affiliation = affiliation;
+
+    if (affiliation === "student") {
+      // 1. Logic check: Ensure it's an educational email
+      if (!studentEmail.endsWith('.edu.gh') && !studentEmail.includes('.edu')) {
+        return res.status(400).json({ message: "Please use a valid student (.edu) email." });
+      }
+
+      user.university = university;
+      user.graduationDate = graduationDate;
+      user.studentEmail = studentEmail;
+      user.isVerified = false; // Set to false until they click the link
+      
+      // 2. Generate a verification token
+      const token = crypto.randomBytes(32).toString('hex');
+      user.verificationToken = token;
+
+      // 3. Send Verification Email (Nodemailer)
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      });
+
+      const verificationUrl = `https://universe-api-u0rj.onrender.com/api/auth/verify-student/${token}`;
+
+      await transporter.sendMail({
+        to: studentEmail,
+        subject: "Verify your UniVerse Student Status",
+        html: `<h1>Welcome to UniVerse!</h1>
+               <p>Click <a href="${verificationUrl}">here</a> to verify your student account and get boosted visibility!</p>`
+      });
+    }
+
+    await user.save();
+    res.status(200).json({ message: "Profile saved. Check your student email for verification!" });
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
+// Route to handle the student email link click
+app.get('/api/auth/verify-student/:token', async (req, res) => {
+  const { token } = req.params;
+
+  try {
+    // 1. Find the user with this unique token
+    const user = await User.findOne({ verificationToken: token });
+
+    if (!user) {
+      // If token doesn't exist or was already cleared
+      return res.status(400).send(`
+        <div style="text-align:center; margin-top:50px; font-family:sans-serif;">
+          <h1 style="color:#e11d48;">Invalid or Expired Link</h1>
+          <p>This verification link is no longer valid. Please try again from your profile settings.</p>
+          <a href="https://universeweb.netlify.app/profile.html">Back to UniVerse</a>
+        </div>
+      `);
+    }
+
+    // 2. Update user status
+    user.isVerified = true;
+    user.verificationToken = undefined; // Clear token so it can't be used twice
+    await user.save();
+
+    // 3. Redirect to a success page or back to profile with a success flag
+    // You can handle this flag in your frontend JS to show a "Verified!" toast
+    res.redirect('https://universeweb.netlify.app/profile.html?verified=true');
+
+  } catch (error) {
+    console.error("Verification error:", error);
+    res.status(500).send("A server error occurred during verification.");
+  }
+});
 
 //fetching user accounts
 app.get('/api/auth/google' , async(req,res) =>{
