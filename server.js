@@ -524,7 +524,7 @@ app.delete('/api/products/:id', async (req, res) => {
 
 
 
-mongoose.connect('mongodb+srv://kelvinashong02:qwerty111@universe.y8my3b4.mongodb.net/?retryWrites=true&w=majority&appName=UniVerse')
+mongoose.connect(process.env.MONGO_URI)
 .then(()=>{
     console.log("connected to mongodb");
     app.listen(PORT, ()=>{
