@@ -145,7 +145,13 @@ app.put('/api/auth/google/user/completeProfile', async (req, res) => {
     user.affiliation = affiliation;
 
     if (affiliation === "student") {
-      // 1. Logic check: Ensure it's an educational email
+      // 1. Guard Clause: Check if studentEmail exists before performing checks
+      // If it's null or empty, return a 400 Bad Request instead of crashing with a 500
+      if (!studentEmail) {
+        return res.status(400).json({ message: "Student email is required for verification." });
+      }
+
+      // 2. Logic check: Ensure it's an educational email
       if (!studentEmail.endsWith('.edu.gh') && !studentEmail.includes('.edu')) {
         return res.status(400).json({ message: "Please use a valid student (.edu) email." });
       }
@@ -155,14 +161,17 @@ app.put('/api/auth/google/user/completeProfile', async (req, res) => {
       user.studentEmail = studentEmail;
       user.isVerified = false; // Set to false until they click the link
       
-      // 2. Generate a verification token
+      // 3. Generate a verification token
       const token = crypto.randomBytes(32).toString('hex');
       user.verificationToken = token;
 
-      // 3. Send Verification Email (Nodemailer)
+      // 4. Send Verification Email (Nodemailer)
       const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        auth: { 
+          user: process.env.EMAIL_USER, 
+          pass: process.env.EMAIL_PASS 
+        }
       });
 
       const verificationUrl = `https://universe-api-u0rj.onrender.com/api/auth/verify-student/${token}`;
@@ -176,10 +185,17 @@ app.put('/api/auth/google/user/completeProfile', async (req, res) => {
     }
 
     await user.save();
-    res.status(200).json({ message: "Profile saved. Check your student email for verification!" });
+    res.status(200).json({ 
+      message: affiliation === "student" 
+        ? "Profile saved. Check your student email for verification!" 
+        : "Profile saved successfully!",
+      user 
+    });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    // Log the error to Render console so you can see exactly what happened
+    console.error("CompleteProfile Error:", error);
+    res.status(500).json({ message: "Server error", details: error.message });
   }
 });
 
