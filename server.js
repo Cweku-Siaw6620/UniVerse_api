@@ -45,6 +45,8 @@ app.use(cors({
 
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin-allow-popups');
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Content-Security-Policy", "frame-ancestors 'none';");
   next();
 });
 app.use(express.json());
@@ -90,51 +92,7 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-/*
-// Route to complete user profile after Google login
-app.put('/api/auth/google/user/completeProfile', async (req, res) => {
-  const { userId, affiliation, university } = req.body;
-
-  if (!userId || !affiliation) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
-
-  try {
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.affiliation = affiliation;
-
-    if (affiliation === "student") {
-      user.university = university || null;
-    } else {
-      // outsider / non-student
-      user.university = null;
-    }
-
-    await user.save();
-
-    res.status(200).json({
-      message: "Profile updated successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-        affiliation: user.affiliation,
-        university: user.university
-      }
-    });
-
-  } catch (error) {
-    console.error("Profile update error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-}); */
-
+//completing profile after google sign in
 app.put('/api/auth/google/user/completeProfile', async (req, res) => {
   const { userId, affiliation, university, graduationDate, studentEmail } = req.body;
 
