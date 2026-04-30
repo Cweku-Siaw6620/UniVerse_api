@@ -1,3 +1,4 @@
+// models/userModel.js
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -8,8 +9,8 @@ const userSchema = new mongoose.Schema({
 
   affiliation: {
     type: String,
-    enum: ["student", "non-student", "external", "student_pending", "student_verified"],
-    default: "external"  // Changed from null to "external"
+    enum: ["student", "external", "student_pending", "student_verified"],
+    default: "external"
   },
 
   university: {
@@ -17,49 +18,25 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
-  studentEmail: {
-    type: String,
-    default: null
+  // NEW: Student ID Card Verification Fields
+  studentIdCard: {
+    frontImage: { type: String, default: null },      // Cloudinary URL for front
+    backImage: { type: String, default: null },       // Cloudinary URL for back
+    frontPublicId: { type: String, default: null },   // For deletion
+    backPublicId: { type: String, default: null },    // For deletion
+    expiryDate: { type: Date, default: null },        // When ID card expires
+    submittedAt: { type: Date, default: null },       // When they submitted
+    verifiedAt: { type: Date, default: null },        // When admin verified
+    rejectedAt: { type: Date, default: null },        // If rejected
+    rejectionReason: { type: String, default: null }  // Why rejected
   },
   
-  graduationDate: {
-    type: Date,
-    default: null
-  },
-  
-  graduationYear: {
-    type: Number,
-    default: null
-  },
-  
-  // Verification fields
+  // Verification status
   isVerified: { 
     type: Boolean, 
     default: false 
   },
   
-  verificationToken: { 
-    type: String,
-    default: null
-  },
-  
-  // NEW FIELDS for 6-digit code verification
-  verificationCode: {
-    type: String,
-    default: null
-  },
-  
-  verificationCodeExpiresAt: {
-    type: Date,
-    default: null
-  },
-  
-  verifiedAt: {
-    type: Date,
-    default: null
-  },
-  
-  // Store whether user completed profile
   profileCompleted: {
     type: Boolean,
     default: false
